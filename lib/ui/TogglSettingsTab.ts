@@ -5,6 +5,7 @@ import {
   ButtonComponent,
   DropdownComponent,
   ExtraButtonComponent,
+  Notice,
   PluginSettingTab,
   Setting,
 } from "obsidian";
@@ -259,8 +260,12 @@ export default class TogglSettingsTab extends PluginSettingTab {
     try {
       await this.plugin.toggl.testConnection();
       button.setButtonText("success!");
-    } catch {
+    } catch (err) {
       button.setButtonText("test failed");
+      const message =
+        err instanceof Error ? err.message : String(err ?? "unknown error");
+      console.error("[toggl] test connection failed:", err);
+      new Notice(`Toggl connection failed: ${message}`, 10000);
     } finally {
       button.setDisabled(false);
       window.setTimeout(() => {
