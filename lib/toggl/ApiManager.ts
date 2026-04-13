@@ -48,8 +48,9 @@ export default class TogglAPI {
     this._api = createClient(apiToken, this._settings?.apiBaseUrl);
     try {
       await this.testConnection();
-    } catch {
-      throw "Cannot connect to Toggl API.";
+    } catch (err) {
+      console.error("[toggl] testConnection failed:", err);
+      throw err instanceof Error ? err : new Error(String(err));
     }
   }
 
