@@ -23,13 +23,36 @@ export function createClient(
     legacy: checkVersion(apiVersion, 0, 13, 25),
   });
 
-  // `toggl-client` hardcodes the API base URL. If the user has provided
-  // a custom base, override the underlying `got` instance's prefixUrl.
+  // `toggl-client` hardcodes the API base URL in two places:
+  //   - `client.httpClient` default prefixUrl (Track API v9)
+  //   - per-request `prefixUrl` overrides inside reports.js (Reports API v2/v3)
+  // If the user has provided a custom base, rewrite both so every call
+  // (Track API *and* Reports API) is routed through the custom endpoint.
   if (apiBaseUrl && apiBaseUrl.trim() !== "") {
     const trimmed = apiBaseUrl.trim().replace(/\/+$/, "");
+    const OFFICIAL = "https://api.track.toggl.com";
+
+    // 1) Track API v9 — replace the default prefixUrl on the shared got instance.
     client.httpClient = client.httpClient.extend({
       prefixUrl: `${trimmed}/api/v9`,
     });
+
+    // 2) Reports API — wrap `client.request` so any per-call prefixUrl pointing
+    //    at the official host gets rewritten to the user's base.
+    const originalRequest = client.request.bind(client);
+    client.request = async function (path: string, options: any) {
+      if (
+        options &&
+        typeof options.prefixUrl === "string" &&
+        options.prefixUrl.startsWith(OFFICIAL)
+      ) {
+        options = {
+          ...options,
+          prefixUrl: trimmed + options.prefixUrl.slice(OFFICIAL.length),
+        };
+      }
+      return originalRequest(path, options);
+    };
   }
 
   return client;
