@@ -30,6 +30,7 @@ export default class TogglSettingsTab extends PluginSettingTab {
     });
 
     this.addApiTokenSetting(containerEl);
+    this.addApiBaseUrlSetting(containerEl);
     this.addTestConnectionSetting(containerEl);
     this.addWorkspaceSetting(containerEl);
     this.addUpdateRealTimeSetting(containerEl);
@@ -59,6 +60,29 @@ export default class TogglSettingsTab extends PluginSettingTab {
             this.plugin.settings.apiToken = value;
             this.plugin.toggl.refreshApiConnection(value);
             await this.plugin.saveSettings();
+          }),
+      );
+  }
+
+  private addApiBaseUrlSetting(containerEl: HTMLElement) {
+    new Setting(containerEl)
+      .setName("API Base URL")
+      .setDesc(
+        "Base URL for the Toggl API. Change this only if you use a " +
+          "self-hosted proxy or alternative endpoint. The path " +
+          "`/api/v9` is appended automatically.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder(DEFAULT_SETTINGS.apiBaseUrl)
+          .setValue(this.plugin.settings.apiBaseUrl || "")
+          .onChange(async (value) => {
+            this.plugin.settings.apiBaseUrl =
+              value.trim() !== "" ? value.trim() : DEFAULT_SETTINGS.apiBaseUrl;
+            await this.plugin.saveSettings();
+            this.plugin.toggl.refreshApiConnection(
+              this.plugin.settings.apiToken,
+            );
           }),
       );
   }
